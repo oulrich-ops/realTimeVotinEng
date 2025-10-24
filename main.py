@@ -41,14 +41,14 @@ def create_votes_table(con, cur):
     );
     
     cREATE TABLE IF NOT EXISTS voters (
-        voter_id SERIAL PRIMARY KEY,
+        voter_id VARCHAR(50),
         voter_name VARCHAR(100),
         date_of_bd DATE,
         gender VARCHAR(10),
         nationality VARCHAR(50),
-        registration_number VARCHAR(50) UNIQUE,
+        registration_number VARCHAR(50) PRIMARY KEY,
         address TEXT,
-        email VARCHAR(100),
+        email VARCHAR(100) UNIQUE,
         phone_number VARCHAR(55) UNIQUE,
         picture_url TEXT,
         registration_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -56,7 +56,7 @@ def create_votes_table(con, cur):
     
     create TABLE IF NOT EXISTS votes (
         vote_id SERIAL,
-        voter_id INT REFERENCES voters(voter_id),
+        voter_id INT voters(registration_number),
         candidate_id INT REFERENCES candidates(candidate_id),
         vote_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         PRIMARY KEY (vote_id, voter_id)

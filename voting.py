@@ -1,9 +1,9 @@
 import datetime
 import json
 import random
-from time import time
+import time as t
 import psycopg2
-from confluent_kafka import Consumer, SerializingProducer, KafakaError, KafkaException
+from confluent_kafka import Consumer, SerializingProducer, KafkaError, KafkaException
 
 def get_postgres_connection():
     try:
@@ -61,6 +61,8 @@ if __name__ == "__main__":
                         raise KafkaException(msg.error())
                 
                 voter_data = json.loads(msg.value().decode('utf-8'))
+                print("Sample voter data keys:", voter_data.keys())
+
                 r = random.random()  
 
                 if r > 0.25:
@@ -69,20 +71,20 @@ if __name__ == "__main__":
                     chosen_candidate = random.choice(candidates[1:])
                 
                 vote = voter_data | chosen_candidate | {
-                    "voting_time": datetime.utcnow().isoformat(),
+                    "voting_time": datetime.datetime.utcnow().isoformat(),
                     'vote': 1
                 }
                 
                 try:
-                    print(f"User {voter_data['registration_number']} voted for {chosen_candidate['name']}")
+                    print(f"User {voter_data['registration_number']} voted for {chosen_candidate['candidate_name']}")
                     cur.execute(
                         """
-                        INSERT INTO votes (voter_id, candidate_id, vote, voting_time)
+                        INSERT INTO votes (voter_id, candidate_id, vote_timestamp)
                         VALUES (%s, %s, %s);
                         """,
                         (
-                            voter_data['voter_id'],
-                            chosen_candidate['id'],
+                            voter_data['registration_number'],
+                            chosen_candidate['candidate_id'],
                             vote['voting_time']
                         )
                     )
@@ -90,14 +92,14 @@ if __name__ == "__main__":
                     
                     producer.produce(
                         topic="votes_topic",
-                        key=voter_data["voter_id"],
+                        key=voter_data["registration_number"],
                         value=json.dumps(vote),
                         on_delivery=lambda err, msg: print(f"Delivered vote for voter {msg.key()}" if err is None else f"Failed to deliver vote for voter {msg.key()}: {err}")
                     )
                     producer.poll(0)
                 except Exception as e:
                     print(f"Error inserting vote for voter {voter_data['registration_number']}: {e}")
-                time.sleep(0.3)               
+                t.sleep(0.5)               
         except KeyboardInterrupt:
                 pass
                 

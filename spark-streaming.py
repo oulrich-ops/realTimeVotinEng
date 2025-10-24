@@ -14,7 +14,6 @@ if __name__ == "__main__":
         .getOrCreate()
         
     vote_schema = StructType([
-            StructField("voter_id", IntegerType(), True),
             StructField("candidate_id", IntegerType(), True),
             StructField("voting_time", TimestampType(), True),
             StructField("voter_name", StringType(), True),
@@ -66,7 +65,7 @@ if __name__ == "__main__":
         .format("kafka") \
         .option("kafka.bootstrap.servers", "localhost:9092") \
         .option("topic", "aggregated_votes_per_candidate") \
-        .option("checkpointLocation", "C:\Users\H P\git\RealTimeVotingEng\checkpoints\checkpoint1")\
+.option("checkpointLocation", "C:\\Users\\H P\\git\\RealTimeVotingEng\\checkpoints\\checkpoint1")\
         .outputMode("update") \
         .start()
         
@@ -75,7 +74,7 @@ if __name__ == "__main__":
         .format("kafka") \
         .option("kafka.bootstrap.servers", "localhost:9092") \
         .option("topic", "aggregated_turnout_by_location") \
-        .option("checkpointLocation", "C:\Users\H P\git\RealTimeVotingEng\checkpoints\checkpoint2")\
+.option("checkpointLocation", "C:\\Users\\H P\\git\\RealTimeVotingEng\\checkpoints\\checkpoint2")\
         .outputMode("update") \
         .start()
         

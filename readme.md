@@ -51,7 +51,7 @@
 
 ---
 
-## 🛠️ Stack Technique
+##  Stack Technique
 
 | Technologie | Usage |
 |------------|-------|
@@ -100,7 +100,7 @@ Ouvrez votre navigateur : **http://localhost:8501**
 
 ```bash
 # Lancer le producteur de votes
-docker-compose exec producer python vote_producer.py
+ python voting.py
 ```
 
 ### Visualiser les résultats

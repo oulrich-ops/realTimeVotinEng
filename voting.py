@@ -1,6 +1,7 @@
 import datetime
 import json
 import random
+from time import time
 import psycopg2
 from confluent_kafka import Consumer, SerializingProducer, KafakaError, KafkaException
 
@@ -96,7 +97,7 @@ if __name__ == "__main__":
                     producer.poll(0)
                 except Exception as e:
                     print(f"Error inserting vote for voter {voter_data['registration_number']}: {e}")
-                               
+                time.sleep(0.3)               
         except KeyboardInterrupt:
                 pass
                 

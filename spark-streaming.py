@@ -4,14 +4,17 @@ from pyspark.sql.types import StructType, StructField, StringType, IntegerType, 
 from pyspark.sql.functions import sum as spark_sum
 from pyspark.sql import functions as F
 
+import os
+jar_path = os.path.join(os.path.dirname(__file__), "postgresql-42.7.8.jar")
 
 if __name__ == "__main__":
 
     spark = pyspark.sql.SparkSession.builder.appName("real time voting eng")\
-        .config("spark.jars.packages", "org.apache.spark:spark-sql-kafka-0-10_2.13:4.0.1")\
-            .config("spark.jars.packages", "./postgresql-42.7.8.jar")\
+        .config("spark.jars.packages", "org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.7")\
+            .config("spark.jars",jar_path)\
             .config("spark.sql.adaptive.enabled", "false")\
-        .getOrCreate()
+            .config("spark.hadoop.io.native.lib.available", "false")\
+            .getOrCreate()
         
     vote_schema = StructType([
             StructField("candidate_id", IntegerType(), True),
@@ -55,7 +58,7 @@ if __name__ == "__main__":
     
     enriched_votes_df = enriched_votes_df.withColumn(
     "country",
-    F.split(F.col("address"), ",")[-2].trim()
+    F.split(F.col("address"), ",")[-2]
 )
         
     turnout_by_location_df = enriched_votes_df.groupBy("country").count().alias("total_votes")
@@ -65,7 +68,7 @@ if __name__ == "__main__":
         .format("kafka") \
         .option("kafka.bootstrap.servers", "localhost:9092") \
         .option("topic", "aggregated_votes_per_candidate") \
-.option("checkpointLocation", "C:\\Users\\H P\\git\\RealTimeVotingEng\\checkpoints\\checkpoint1")\
+.option("checkpointLocation",  "C:/spark_checkpoints/checkpoint1")\
         .outputMode("update") \
         .start()
         
@@ -74,7 +77,7 @@ if __name__ == "__main__":
         .format("kafka") \
         .option("kafka.bootstrap.servers", "localhost:9092") \
         .option("topic", "aggregated_turnout_by_location") \
-.option("checkpointLocation", "C:\\Users\\H P\\git\\RealTimeVotingEng\\checkpoints\\checkpoint2")\
+.option("checkpointLocation",  "C:/spark_checkpoints/checkpoint2")\
         .outputMode("update") \
         .start()
         

@@ -17,6 +17,7 @@ if __name__ == "__main__":
             .getOrCreate()
         
     vote_schema = StructType([
+            StructField("candidate_name", StringType(), True),
             StructField("candidate_id", IntegerType(), True),
             StructField("voting_time", TimestampType(), True),
             StructField("voter_name", StringType(), True),
@@ -53,12 +54,12 @@ if __name__ == "__main__":
                 
             
     #aggregate votes per candidate every 5 minutes
-    votes_per_candidates = enriched_votes_df.groupBy("candidate_id","photo_url")\
+    votes_per_candidates = enriched_votes_df.groupBy("candidate_id","candidate_name","photo_url","party","campaign_promises")\
         .agg(spark_sum('vote').alias('total_votes'))
     
     enriched_votes_df = enriched_votes_df.withColumn(
     "country",
-    F.split(F.col("address"), ",")[-2]
+    F.trim(F.element_at(F.split(F.col("address"), ","), -2))
 )
         
     turnout_by_location_df = enriched_votes_df.groupBy("country").count().alias("total_votes")
@@ -72,7 +73,7 @@ if __name__ == "__main__":
         .outputMode("update") \
         .start()
         
-    turnout_by_location_to_kafka = votes_per_candidates.selectExpr('to_json(struct(*)) AS value') \
+    turnout_by_location_to_kafka = turnout_by_location_df.selectExpr('to_json(struct(*)) AS value') \
         .writeStream \
         .format("kafka") \
         .option("kafka.bootstrap.servers", "localhost:9092") \

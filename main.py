@@ -48,7 +48,7 @@ def create_votes_table(con, cur):
         nationality VARCHAR(50),
         registration_number VARCHAR(50) PRIMARY KEY,
         address TEXT,
-        email VARCHAR(100) UNIQUE,
+        email VARCHAR(100),
         phone_number VARCHAR(55) UNIQUE,
         picture_url TEXT,
         registration_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -56,7 +56,7 @@ def create_votes_table(con, cur):
     
     create TABLE IF NOT EXISTS votes (
         vote_id SERIAL,
-        voter_id INT voters(registration_number),
+        voter_id VARCHAR(50) REFERENCES voters(registration_number),
         candidate_id INT REFERENCES candidates(candidate_id),
         vote_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         PRIMARY KEY (vote_id, voter_id)
@@ -134,10 +134,11 @@ def generate_voters():
 def insert_voter(cur, voter):
     
     insert_query = '''
-        INSERT INTO voters (voter_name, date_of_bd, gender, nationality, registration_number, address, email, phone_number, picture_url) 
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s);
+        INSERT INTO voters (voter_id,voter_name, date_of_bd, gender, nationality, registration_number, address, email, phone_number, picture_url) 
+        VALUES (%s,%s, %s, %s, %s, %s, %s, %s, %s, %s);
         '''
     cur.execute(insert_query, (
+            voter['registration_number'],
             voter['name'],      
             voter['date_of_bd'],
             voter['gender'],

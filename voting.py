@@ -65,10 +65,10 @@ if __name__ == "__main__":
 
                 r = random.random()  
 
-                if r > 0.25:
+                if r > 0.70:
                     chosen_candidate = candidates[0]
                 else:
-                    chosen_candidate = random.choice(candidates[1:])
+                    chosen_candidate = random.choice(candidates)
                 
                 vote = voter_data | chosen_candidate | {
                     "voting_time": datetime.datetime.utcnow().isoformat(),

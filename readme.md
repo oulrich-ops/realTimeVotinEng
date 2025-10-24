@@ -99,6 +99,12 @@ Ouvrez votre navigateur : **http://localhost:8501**
 ### Démarrer la simulation de votes
 
 ```bash
+# Peupler la bd avec les candidats et votant
+python main.py
+
+# executer spark pour faire l'aggrégation continue des données !
+python spark-streaming.py
+
 # Lancer le producteur de votes
  python voting.py
 ```

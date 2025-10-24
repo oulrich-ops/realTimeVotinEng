@@ -1,6 +1,8 @@
+import json
 import random
 import psycopg2
 import requests
+from confluent_kafka import SerializingProducer
 
 BASE_URL = "https://randomuser.me/api/?nat=us,dk,fr,gb"
 PARTIES = [
@@ -46,8 +48,8 @@ def create_votes_table(con, cur):
         nationality VARCHAR(50),
         registration_number VARCHAR(50) UNIQUE,
         address TEXT,
-        email VARCHAR(100) UNIQUE,
-        phone_number VARCHAR(15) UNIQUE,
+        email VARCHAR(100),
+        phone_number VARCHAR(55) UNIQUE,
         picture_url TEXT,
         registration_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
@@ -106,13 +108,17 @@ def insert_sample_data(con, cur):
     cur.execute(query)
     con.commit()
     
-def generate_voters(num_voters):
-    voters = []
-    for _ in range(num_voters):
-        response = requests.get(BASE_URL)
-        if response.status_code == 200:
-            data = response.json()['results'][0]
-            voter = {
+def generate_voters():
+
+    response = requests.get(BASE_URL)
+    if response.status_code == 200:
+        json_data = response.json()
+
+        if 'results' not in json_data or not json_data['results']:
+            print("API returned no users:", json_data)
+            return None
+        data = response.json()['results'][0]
+        voter = {
                 'name': f"{data['name']['first']} {data['name']['last']}",
                 'date_of_bd': data['dob']['date'][:10],
                 'gender': data['gender'],
@@ -123,11 +129,34 @@ def generate_voters(num_voters):
                 'phone_number': data['phone'],
                 'picture_url': data['picture']['large'],
             }
-            voters.append(voter)
+        return voter
+
+def insert_voter(cur, voter):
+    
+    insert_query = '''
+        INSERT INTO voters (voter_name, date_of_bd, gender, nationality, registration_number, address, email, phone_number, picture_url) 
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s);
+        '''
+    cur.execute(insert_query, (
+            voter['name'],      
+            voter['date_of_bd'],
+            voter['gender'],
+            voter['nationality'],
+            voter['registration_number'],
+            voter['address'],
+            voter['email'],
+            voter['phone_number'],
+            voter['picture_url']
+        ))
+    conn.commit()
+    
 
 if __name__ == "__main__":
-     conn = get_postgres_connection()
-     if conn:
+    
+    producer = SerializingProducer({'bootstrap.servers': 'localhost:9092'})
+
+    conn = get_postgres_connection()
+    if conn:
          cur = conn.cursor()
          create_votes_table(conn, cur)
          cur.execute("SELECT COUNT(*) FROM candidates;")
@@ -135,27 +164,17 @@ if __name__ == "__main__":
          if count == 0:
             insert_sample_data(conn, cur)
         
-         count = cur.execute("SELECT COUNT(*) FROM voters;").fetchone()[0]
-         if count == 0:
-            voters = generate_voters(5000)
-            for voter in voters:
-                insert_query = '''
-                INSERT INTO voters (voter_name, date_of_bd, gender, nationality, registration_number, address, email, phone_number, picture_url) 
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s);
-                '''
-                cur.execute(insert_query, (
-                    voter['name'],
-                    voter['date_of_bd'],
-                    voter['gender'],    
-                    voter['nationality'],
-                    voter['registration_number'],   
-                    voter['address'],
-                    voter['email'],
-                    voter['phone_number'],
-                    voter['picture_url']
-                ))
-            conn.commit()
         
+         for _ in range(5000):
+                voter = generate_voters()
+                if voter:
+                    insert_voter(cur, voter)
+                
+                    producer.produce(topic="voters_topic", key=voter["registration_number"], value=json.dumps(voter), on_delivery=lambda err, msg: print(f"Delivered voter {msg.key()}" if err is None else f"Failed to deliver voter {msg.key()}: {err}") )
+
+                    print(f"Produced voter {_}, data: {voter}")
+         producer.flush()
          cur.close()
          conn.close()
+         
          
